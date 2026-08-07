@@ -1,0 +1,27 @@
+/*
+  Placeholder stylesheet. Tailwind CSS is adopted as part of the
+  "Theme engine" / "Design system" tasks (see ROADMAP.md); until then
+  this file only holds the minimal reset needed for the app shell to
+  render without a flash of unstyled content.
+*/
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #f5efe6;
+  color: #2b2622;
+}
