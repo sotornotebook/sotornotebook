@@ -6,8 +6,8 @@ Implementation follows this fixed order (see `PROJECT_STRUCTURE.md` for the arch
 - [x] **2. Root files** — `index.html`, `manifest.json`, `service-worker.js`.
 - [x] **3. PROJECT_STRUCTURE.md** — architecture documented.
 - [x] **4. Storage layer** — IndexedDB wrapper (`js/database/`), LocalStorage helpers, migrations, backup/restore (`js/storage/`).
-- [ ] **5. Theme engine** — light/dark/paper themes, persisted in LocalStorage, decide Tailwind integration. ← **next task**
-- [ ] **6. Design system** — Tailwind config/tokens, typography, spacing, motion primitives.
+- [x] **5. Theme engine** — light/dark/paper themes as CSS custom properties, persisted in LocalStorage, applied without a flash of the wrong theme.
+- [ ] **6. Design system** — Tailwind config/tokens (wired to the theme engine's CSS variables), typography, spacing, motion primitives. ← **next task**
 - [ ] **7. Shared components** — buttons, cards, sheets, nav bar, empty states (`js/components/`).
 - [ ] **8. Routing** — client-side view switching, deep link to last screen.
 - [ ] **9. Feature placeholders** — empty shells for every module wired into routing/dashboard.
@@ -28,4 +28,4 @@ Implementation follows this fixed order (see `PROJECT_STRUCTURE.md` for the arch
 
 ## Current status
 
-Phase 4 complete (storage layer: IndexedDB schema/migrations, generic CRUD, LocalStorage settings, backup/restore, wired into `js/main.js`). Recommended next task: **Theme engine** (phase 5) — light/paper/dark theme definitions persisted via `js/storage/settings.js`, and a decision on the Tailwind integration method.
+Phase 5 complete (theme engine: `paper`/`light`/`dark` tokens in `css/themes.css`, `js/theme.js` for init/switch/persist, pre-paint inline script in `index.html` to avoid a flash of the wrong theme). Recommended next task: **Design system** (phase 6) — decide and integrate Tailwind (CDN vs. compiled build), wire its config to the `--color-*` tokens already defined, and establish typography/spacing/motion primitives.

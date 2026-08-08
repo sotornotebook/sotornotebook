@@ -14,9 +14,11 @@ sotornotebook/
 ├── ROADMAP.md
 ├── CHANGELOG.md
 ├── css/
-│   └── main.css            # Global styles (Tailwind adopted in Design System phase)
+│   ├── themes.css          # Theme tokens (paper/light/dark) as CSS custom properties
+│   └── main.css            # App-shell base styles, reads the tokens (Tailwind adopted in Design System phase)
 ├── js/
-│   ├── main.js             # Entry point: registers service worker, opens the DB, boots the app
+│   ├── main.js             # Entry point: registers service worker, applies theme, opens the DB, boots the app
+│   ├── theme.js            # THEMES, initTheme(), setTheme() — applies data-theme, persists via storage layer
 │   ├── components/         # Reusable, presentation-only UI pieces (buttons, cards, sheets)
 │   ├── modules/            # One folder per feature module (dashboard, journal, mood, etc.)
 │   ├── storage/            # Public storage API — the only thing feature modules import
@@ -43,7 +45,7 @@ sotornotebook/
 
 ## Dependencies
 
-None (no npm packages, no CDN frameworks). Tailwind CSS will be introduced during the **Theme engine / Design system** phase — the exact integration method (CDN vs. compiled build) is decided in that task, not before.
+None (no npm packages, no CDN frameworks). The Theme Engine phase deliberately shipped without Tailwind, using plain CSS custom properties instead — introducing a build tool is a bigger decision than theming alone needed. Tailwind CSS (and its config/build method: CDN vs. compiled) is decided in the **Design System** phase, wired to read the same `--color-*` tokens defined in `css/themes.css`.
 
 ## Data flow
 
@@ -63,6 +65,12 @@ No data ever leaves the device. There is no network call in the data path.
 - **IndexedDB** (`sotor-db`, see `js/database/schema.js`) — object stores `journalEntries`, `moodLogs`, `reflections`, `timeCapsules`, `photos`, `voiceNotes`, and the key/value `metadata` store. Schema changes are additive migrations in `MIGRATIONS`; never edit a migration that has already shipped.
 - **LocalStorage** (`js/storage/settings.js`) — settings, active theme, last-open screen, small preferences only, namespaced under the `sotor:` prefix. Never store journal content here.
 - **Backup/restore** (`js/storage/backup.js`) — `createBackup()`/`downloadBackup()` snapshot every IndexedDB store plus all `sotor:`-namespaced settings into one JSON file; `restoreBackup()`/`restoreBackupFromFile()` replace local data from that file. No cloud step involved — the Backup/Restore *module* (UI) still needs to be built on top of this in its own task.
+
+## Theme flow
+
+- Three presets — `paper` (default), `light`, `dark` — are defined as CSS custom properties in `css/themes.css` and applied via `<html data-theme="...">`.
+- `index.html` carries a small inline script in `<head>` that reads the persisted theme directly from LocalStorage and sets `data-theme` **before first paint**, so there's no flash of the wrong theme (an ES module `<script>` would run too late to prevent that flash). That snippet, `js/theme.js`'s `DEFAULT_THEME`, and `js/storage/settings.js`'s LocalStorage key format must be kept in sync — they intentionally duplicate a few lines of logic to avoid a network/module round-trip on boot.
+- `js/theme.js` (`initTheme()`/`setTheme()`) is the only code allowed to write `data-theme` after boot; it persists the choice through `js/storage/index.js` (never touches LocalStorage directly) and fires a `sotor:themechange` event on `document` for future UI (e.g. a Settings/Themes screen) to react to.
 
 ## Navigation flow
 
@@ -88,6 +96,7 @@ Maximum 3 taps from Dashboard to any feature (see SKILL: SOTOR_NFC_JOURNAL_ENGIN
 - JS exports: `camelCase` for functions/variables, `PascalCase` only for factory/class-like constructors.
 - CSS: Tailwind utility classes in markup; any custom classes in `css/main.css` use `kebab-case` prefixed `sotor-` (e.g. `.sotor-card`).
 - IndexedDB object stores: plural, `camelCase` (e.g. `journalEntries`, `moodLogs`, `timeCapsules`) — each store holds many records. Exception: `metadata` is a singular key/value store, not a record collection.
+- CSS custom properties: `--color-*`, kebab-case (e.g. `--color-ink-muted`), defined once per theme in `css/themes.css` and never hardcoded elsewhere.
 
 ## Roadmap
 
@@ -96,9 +105,10 @@ See `ROADMAP.md` for phase-by-phase status.
 ## TODOs
 
 - [ ] Design and add real app icons at `assets/icons/icon-192.png` and `assets/icons/icon-512.png` (manifest already references them).
-- [ ] Decide Tailwind integration approach during the Theme Engine / Design System phase.
+- [ ] Decide Tailwind integration approach during the Design System phase.
 - [ ] Build the Backup/Restore *module* (UI) on top of `js/storage/backup.js`.
+- [ ] Build the Themes *module* (UI) on top of `js/theme.js`'s `setTheme()`.
 
 ## Project status
 
-**Phase:** Storage layer complete. **Next phase:** Theme engine. See `ROADMAP.md`.
+**Phase:** Theme engine complete. **Next phase:** Design system. See `ROADMAP.md`.

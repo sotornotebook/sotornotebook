@@ -1,13 +1,9 @@
 /*
-  Placeholder stylesheet. Tailwind CSS is adopted as part of the
-  "Theme engine" / "Design system" tasks (see ROADMAP.md); until then
-  this file only holds the minimal reset needed for the app shell to
-  render without a flash of unstyled content.
+  App-shell base styles. Color tokens live in css/themes.css (loaded
+  first) as CSS custom properties per theme; this file only turns them
+  into concrete element styles. Tailwind CSS is adopted in the Design
+  System phase — until then this file is the whole stylesheet.
 */
-
-:root {
-  color-scheme: light;
-}
 
 * {
   box-sizing: border-box;
@@ -22,6 +18,6 @@ body {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: #f5efe6;
-  color: #2b2622;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
 }

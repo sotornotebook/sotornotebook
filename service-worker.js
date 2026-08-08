@@ -1,12 +1,14 @@
 // Minimal app-shell cache. Extend CACHE_FILES as modules/assets land;
 // bump CACHE_NAME on any change so old caches are cleared on activate.
-const CACHE_NAME = "sotor-shell-v1";
+const CACHE_NAME = "sotor-shell-v2";
 const CACHE_FILES = [
   "/",
   "/index.html",
   "/manifest.json",
+  "/css/themes.css",
   "/css/main.css",
   "/js/main.js",
+  "/js/theme.js",
 ];
 
 self.addEventListener("install", (event) => {

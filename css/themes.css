@@ -1,0 +1,54 @@
+/*
+  Theme tokens. Each theme defines the same set of custom properties;
+  every other stylesheet reads these variables instead of hex values,
+  so adding a new theme never requires touching component CSS.
+
+  The active theme is written to <html data-theme="..."> by js/theme.js.
+  index.html also carries a small inline script that sets this
+  attribute before first paint (to avoid a flash of the wrong theme) —
+  keep DEFAULT_THEME below, js/theme.js, and that inline script in sync.
+*/
+
+:root,
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --color-bg: #f5efe6;
+  --color-surface: #faf6ee;
+  --color-ink: #2b2622;
+  --color-ink-muted: #6b6259;
+  --color-accent: #b6633e;
+  --color-border: #e4d9c7;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f5;
+  --color-ink: #1c1c1e;
+  --color-ink-muted: #6e6e73;
+  --color-accent: #b6633e;
+  --color-border: #e5e5ea;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #1b1a18;
+  --color-surface: #242220;
+  --color-ink: #ede7dd;
+  --color-ink-muted: #a9a199;
+  --color-accent: #d98a5e;
+  --color-border: #38352f;
+}
+
+/* Calm, not jarring: fade colors when the theme changes, unless the user asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    transition: background-color 200ms ease;
+  }
+
+  body {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+}

@@ -2,6 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Set the theme before first paint so there's no flash of the
+      // wrong theme. Mirrors DEFAULT_THEME in js/theme.js and the
+      // LocalStorage key format from js/storage/settings.js — keep the
+      // three in sync if any of them change.
+      (function () {
+        var STORAGE_KEY = "sotor:theme";
+        var VALID_THEMES = ["paper", "light", "dark"];
+        var theme = "paper";
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          var parsed = raw && JSON.parse(raw);
+          if (VALID_THEMES.indexOf(parsed) !== -1) theme = parsed;
+        } catch (e) {}
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>SOTOR</title>
     <meta name="description" content="SOTOR — a private, offline digital companion for your paper notebook." />
@@ -9,6 +26,7 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/assets/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+    <link rel="stylesheet" href="/css/themes.css" />
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="min-h-screen bg-paper text-ink antialiased">
