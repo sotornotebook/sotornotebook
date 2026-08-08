@@ -5,8 +5,8 @@ Implementation follows this fixed order (see `PROJECT_STRUCTURE.md` for the arch
 - [x] **1. Project scaffold** — folder structure created.
 - [x] **2. Root files** — `index.html`, `manifest.json`, `service-worker.js`.
 - [x] **3. PROJECT_STRUCTURE.md** — architecture documented.
-- [ ] **4. Storage layer** — IndexedDB wrapper (`js/database/`), LocalStorage helpers, migrations, backup/restore (`js/storage/`). ← **next task**
-- [ ] **5. Theme engine** — light/dark/paper themes, persisted in LocalStorage, decide Tailwind integration.
+- [x] **4. Storage layer** — IndexedDB wrapper (`js/database/`), LocalStorage helpers, migrations, backup/restore (`js/storage/`).
+- [ ] **5. Theme engine** — light/dark/paper themes, persisted in LocalStorage, decide Tailwind integration. ← **next task**
 - [ ] **6. Design system** — Tailwind config/tokens, typography, spacing, motion primitives.
 - [ ] **7. Shared components** — buttons, cards, sheets, nav bar, empty states (`js/components/`).
 - [ ] **8. Routing** — client-side view switching, deep link to last screen.
@@ -28,4 +28,4 @@ Implementation follows this fixed order (see `PROJECT_STRUCTURE.md` for the arch
 
 ## Current status
 
-Phase 3 complete (scaffold + root files + this doc set). Recommended next task: **Storage layer** (phase 4) — IndexedDB schema/wrapper plus LocalStorage settings helpers, kept under 10 files, with its own CHANGELOG entry.
+Phase 4 complete (storage layer: IndexedDB schema/migrations, generic CRUD, LocalStorage settings, backup/restore, wired into `js/main.js`). Recommended next task: **Theme engine** (phase 5) — light/paper/dark theme definitions persisted via `js/storage/settings.js`, and a decision on the Tailwind integration method.
