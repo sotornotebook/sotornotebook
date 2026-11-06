@@ -75,16 +75,6 @@ function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => 
   return t;
 }
 
-/** Soft radial gradient used for light pools, halos and dust. */
-export const radialTex = canvasTex(128, 128, (g) => {
-  const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  grd.addColorStop(0, 'rgba(255,255,255,1)');
-  grd.addColorStop(0.35, 'rgba(255,255,255,0.45)');
-  grd.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grd;
-  g.fillRect(0, 0, 128, 128);
-});
-
 /** Mashrabiya lattice. Warm light shows through the gaps. */
 export function latticeTex(bg: string) {
   return canvasTex(128, 192, (g) => {
@@ -131,3 +121,15 @@ export const groundTex = (() => {
   t.repeat.set(4, 30);
   return t;
 })();
+
+/** Soft radial gradient used for light pools, halos and dust. */
+export const radialTex = canvasTex(128, 128, (g) => {
+  const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 128, 128);
+});
+
+glowMats.pool.map = radialTex;

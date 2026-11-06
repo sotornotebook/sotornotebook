@@ -1,4 +1,4 @@
-import { PRODUCTS } from '../data/products';
+import { categoryById, sortedCategories } from '../data/catalog';
 
 // World layout. The alley runs along -Z. Camera height ~1.6m.
 // Right side (+X) and left side (-X) facades sit at |x| = FACADE_X.
@@ -37,9 +37,10 @@ const BUILDING_COLORS = ['#E8C9A0', '#D9A877', '#C98F6B', '#E4D3B5', '#B8846A', 
  */
 const offsetForZ = (z: number) => Math.min(1, Math.max(0, (START_Z - z) / (START_Z - END_Z)));
 
-export const SHOPS: ShopSlot[] = PRODUCTS.map((p, i) => {
+/** One shopfront per category, in catalogue order, on the side the category asks for. */
+export const SHOPS: ShopSlot[] = sortedCategories().map((c, i) => {
   const z = FIRST_SHOP_Z - i * SHOP_SPACING;
-  return { id: p.id, index: i, side: (i % 2 === 0 ? 1 : -1) as Side, z, offset: offsetForZ(z + STOP_AHEAD) };
+  return { id: c.id, index: i, side: (c.side === 'right' ? 1 : -1) as Side, z, offset: offsetForZ(z + STOP_AHEAD) };
 });
 
 /** stop points for prev/next buttons: entrance, every shop, workshop */
@@ -67,7 +68,8 @@ export const BLOCKS: Block[] = (() => {
         side,
         z,
         height: 6.2 + Math.round(r * 3) * 1.3,
-        color: BUILDING_COLORS[k++ % BUILDING_COLORS.length],
+        // shop facades take their category's wall colour
+        color: shop ? categoryById(shop.id)!.wallColor : BUILDING_COLORS[k++ % BUILDING_COLORS.length],
         shop,
       });
     }

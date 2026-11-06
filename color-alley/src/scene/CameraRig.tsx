@@ -6,37 +6,38 @@ import * as THREE from 'three';
 import { ALLEY_LEN, FACADE_X, SHOPS, STOP_AHEAD, WORKSHOP_Z } from './layout';
 import { PATH } from './path';
 import { useStore } from '../store/useStore';
+import { setPortalShift } from './htmlPortal';
 
 const PANEL_W = 440;
+const WALK_IN = 1.0; // seconds
+const WALK_OUT = 1.1;
+
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const bezier = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, t: number, out: THREE.Vector3) =>
+  out.set(0, 0, 0).addScaledVector(a, (1 - t) * (1 - t)).addScaledVector(b, 2 * (1 - t) * t).addScaledVector(c, t * t);
+
+interface Tween {
+  kind: 'in' | 'out';
+  /** walk position to resume at (walk-out) */
+  offset?: number;
+  t0: number;
+  p0: THREE.Vector3;
+  p1: THREE.Vector3;
+  p2: THREE.Vector3;
+  l0: THREE.Vector3;
+  l1: THREE.Vector3;
+}
 
 /**
  * Drives the camera from the ScrollControls offset along a CatmullRom spline,
- * with head-bob while walking, gentle idle sway, pointer parallax,
- * and an eased "face the shop" pose when a shop is focused.
+ * with head-bob, idle sway, pointer parallax, a glance at each shop, the
+ * walk-through-the-door tween into a shop and the walk-back-out tween.
  */
 export function CameraRig() {
   const scroll = useScroll();
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const setScrollEl = useStore((s) => s.setScrollEl);
-
-  useEffect(() => {
-    setScrollEl(scroll.el);
-    scroll.el.setAttribute('aria-hidden', 'true');
-    scroll.el.tabIndex = -1;
-    // allow horizontal drag gestures to reach our pointer handlers on touch screens
-    scroll.el.style.touchAction = 'pan-y';
-    // Walking is locked until the lanterns are lit, and while a shop panel is open.
-    // (Programmatic scrollTo still works while overflow is hidden.)
-    const apply = (s: { lit: boolean; focus: string | null }) => {
-      scroll.el.style.overflowY = s.lit && !s.focus ? 'auto' : 'hidden';
-    };
-    apply(useStore.getState());
-    const unsub = useStore.subscribe(apply);
-    return () => {
-      unsub();
-      setScrollEl(null);
-    };
-  }, [scroll.el, setScrollEl]);
+  const tween = useRef<Tween | null>(null);
 
   const v = useMemo(
     () => ({
@@ -51,6 +52,66 @@ export function CameraRig() {
   );
   const walk = useRef({ prev: 0, phase: 0, amt: 0, lastProgress: -1, lastNear: '' as string | null });
 
+  useEffect(() => {
+    setScrollEl(scroll.el);
+    scroll.el.setAttribute('aria-hidden', 'true');
+    scroll.el.tabIndex = -1;
+    scroll.el.style.touchAction = 'pan-y';
+    // Walking is locked until the lanterns are lit, while a panel is open and during the door walk.
+    const apply = (s: { lit: boolean; focus: string | null; entering: string | null }) => {
+      scroll.el.style.overflowY = s.lit && !s.focus && !s.entering ? 'auto' : 'hidden';
+    };
+    apply(useStore.getState());
+    const unsub = useStore.subscribe(apply);
+
+    // Coming back out of a shop: restore the walk position in front of it and
+    // play the "walk back out of the door" tween.
+    const { returnFrom } = useStore.getState();
+    const shop = SHOPS.find((s) => s.id === returnFrom);
+    if (shop) {
+      scroll.offset = shop.offset;
+      const top = () => (scroll.el.scrollTop = shop.offset * (scroll.el.scrollHeight - scroll.el.clientHeight));
+      top();
+      requestAnimationFrame(() => requestAnimationFrame(top)); // after ScrollControls' first-run guard
+      const p0 = new THREE.Vector3(shop.side * (FACADE_X + 0.5), 1.5, shop.z);
+      camera.position.copy(p0);
+      v.look.set(-shop.side * 4, 1.6, shop.z);
+      tween.current = {
+        kind: 'out',
+        offset: shop.offset,
+        t0: -1,
+        p0,
+        p1: new THREE.Vector3(shop.side * (FACADE_X - 1.8), 1.6, shop.z + 0.6),
+        p2: PATH.getPointAt(shop.offset, new THREE.Vector3()),
+        l0: v.look.clone(),
+        l1: PATH.getPointAt(Math.min(shop.offset + 0.05, 1), new THREE.Vector3()).setY(1.7),
+      };
+    }
+    // the fade overlay lifts once the alley has rendered a frame
+    requestAnimationFrame(() => useStore.getState().set({ fade: false }));
+
+    // Walking into a shop
+    const unsubEnter = useStore.subscribe((s, prev) => {
+      if (s.entering && s.entering !== prev.entering) {
+        const target = SHOPS.find((x) => x.id === s.entering)!;
+        tween.current = {
+          kind: 'in',
+          t0: -1,
+          p0: camera.position.clone(),
+          p1: new THREE.Vector3(target.side * (FACADE_X - 1.7), 1.6, target.z + 0.3),
+          p2: new THREE.Vector3(target.side * (FACADE_X + 0.6), 1.5, target.z),
+          l0: v.look.clone(),
+          l1: new THREE.Vector3(target.side * (FACADE_X + 4), 1.45, target.z),
+        };
+      }
+    });
+    return () => {
+      unsub();
+      unsubEnter();
+      setScrollEl(null);
+    };
+  }, [scroll, setScrollEl, camera, v]);
+
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.1);
     const { focus, setProgress, setNearShop, lang } = useStore.getState();
@@ -64,15 +125,35 @@ export function CameraRig() {
       camera.updateProjectionMatrix();
     }
 
-    if (focus) {
-      if (focus === 'workshop') {
-        v.pos.set(0, 1.8, WORKSHOP_Z + 8.2);
-        v.lookTarget.set(0, 3.0, WORKSHOP_Z);
-      } else {
-        const shop = SHOPS.find((s) => s.id === focus)!;
-        v.pos.set(-shop.side * 2.3, 1.85, shop.z + 0.5);
-        v.lookTarget.set(shop.side * FACADE_X, portrait ? 1.45 : 2.2, shop.z);
+    // ---- door tweens take over the camera completely
+    const tw = tween.current;
+    if (tw) {
+      if (tw.t0 < 0) tw.t0 = time;
+      const k = Math.min((time - tw.t0) / (tw.kind === 'in' ? WALK_IN : WALK_OUT), 1);
+      const e = ease(k);
+      bezier(tw.p0, tw.p1, tw.p2, e, camera.position);
+      camera.position.y += Math.sin(e * Math.PI * 4) * 0.025; // footsteps
+      v.look.lerpVectors(tw.l0, tw.l1, ease(Math.min(k * 1.6, 1)));
+      camera.lookAt(v.look);
+      if (camera.view?.enabled) camera.clearViewOffset();
+      setPortalShift(0, 0);
+      if (k >= 1) {
+        tween.current = null;
+        if (tw.kind === 'out' && tw.offset !== undefined) {
+          // ScrollControls ignores the first scroll after mounting: re-sync it now
+          scroll.offset = tw.offset;
+          scroll.el.scrollTop = tw.offset * (scroll.el.scrollHeight - scroll.el.clientHeight);
+          scroll.el.dispatchEvent(new Event('scroll'));
+          useStore.getState().set({ returnFrom: null });
+        }
+        walk.current.prev = scroll.offset;
       }
+      return;
+    }
+
+    if (focus === 'workshop') {
+      v.pos.set(0, 1.8, WORKSHOP_Z + 8.2);
+      v.lookTarget.set(0, 3.0, WORKSHOP_Z);
       v.pos.y += Math.sin(time * 0.8) * 0.01;
     } else {
       PATH.getPointAt(t, v.pos);
@@ -93,8 +174,7 @@ export function CameraRig() {
       v.lookTarget.x += glanceSide * glance * 1.5;
       v.lookTarget.y += glance * 0.3;
       // near the end, turn the gaze to the workshop
-      const endBlend = THREE.MathUtils.smoothstep(t, 0.9, 1);
-      v.lookTarget.lerp(v.end, endBlend * 0.6);
+      v.lookTarget.lerp(v.end, THREE.MathUtils.smoothstep(t, 0.9, 1) * 0.6);
 
       // head-bob proportional to walking speed (m/s)
       const speed = (Math.abs(t - walk.current.prev) / Math.max(dt, 1e-4)) * ALLEY_LEN;
@@ -116,18 +196,17 @@ export function CameraRig() {
     camera.lookAt(v.look);
     camera.rotateZ(roll);
 
-    // Shift the frame so the focused shop isn't hidden behind the side panel.
+    // Shift the frame so the workshop isn't hidden behind its side panel.
     const { width, height } = state.size;
     const mobile = width < 768;
     const tx = focus && !mobile ? (lang === 'ar' ? PANEL_W / 2 : -PANEL_W / 2) : 0;
     const ty = focus && mobile ? height * 0.24 : 0;
     v.view.x = THREE.MathUtils.damp(v.view.x, tx, 4, dt);
     v.view.y = THREE.MathUtils.damp(v.view.y, ty, 4, dt);
-    if (Math.abs(v.view.x) > 0.5 || Math.abs(v.view.y) > 0.5) {
-      camera.setViewOffset(width, height, v.view.x, v.view.y, width, height);
-    } else if (camera.view?.enabled) {
-      camera.clearViewOffset();
-    }
+    const shifted = Math.abs(v.view.x) > 0.5 || Math.abs(v.view.y) > 0.5;
+    if (shifted) camera.setViewOffset(width, height, v.view.x, v.view.y, width, height);
+    else if (camera.view?.enabled) camera.clearViewOffset();
+    setPortalShift(shifted ? v.view.x : 0, shifted ? v.view.y : 0);
 
     // HUD state (only push to React when it actually changes)
     if (Math.abs(t - walk.current.lastProgress) > 0.004) {

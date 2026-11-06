@@ -1,21 +1,29 @@
-import { useState } from 'react';
-import { PRODUCTS } from '../data/products';
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { productsIn, sortedCategories } from '../data/catalog';
 import { useStore, useT } from '../store/useStore';
-import { formatPrice } from './format';
-import { CartButton, LangButton, Logo } from './Header';
+import { CartButton, LangButton, Logo, catName } from './Header';
+import { ProductCard } from './ProductCard';
 import { SignupForm } from './SignupForm';
+import { shopUrl } from './nav';
 
-/** Simple scrolling page with the same shops as cards (no WebGL / reduced motion). */
-export function Fallback2D({ canUse3D, onView3D }: { canUse3D: boolean; onView3D: () => void }) {
+/** Simple scrolling page with the same shops (categories) and products, for no-WebGL / reduced motion. */
+export function Fallback2D({ canUse3D, onView3D, categoryId }: { canUse3D: boolean; onView3D: () => void; categoryId: string | null }) {
   const t = useT();
   const lang = useStore((s) => s.lang);
-  const addToCart = useStore((s) => s.addToCart);
-  const [added, setAdded] = useState<string | null>(null);
+  const cats = sortedCategories();
+
+  // /shop/:id in 2D → scroll to that shop's section
+  useEffect(() => {
+    if (categoryId) document.getElementById(`shop-${categoryId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [categoryId]);
 
   return (
     <div className="min-h-full bg-navy bg-[radial-gradient(ellipse_at_top,rgba(242,169,59,.18),transparent_60%)]">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-cream/10 bg-navy/90 px-4 py-3 backdrop-blur sm:px-8">
-        <Logo />
+        <Link to="/">
+          <Logo />
+        </Link>
         <div className="flex items-center gap-2">
           {canUse3D && (
             <button className="btn-icon w-auto px-3 font-body text-xs" onClick={onView3D}>
@@ -31,41 +39,35 @@ export function Fallback2D({ canUse3D, onView3D }: { canUse3D: boolean; onView3D
         <section className="py-10 text-center">
           <h1 className="font-display text-4xl text-gold sm:text-5xl">{t.welcomeSign}</h1>
           <p className="mx-auto mt-3 max-w-xl font-body text-lg text-cream/80">{t.fallbackIntro}</p>
+          <nav aria-label={t.shopsNav} className="mt-6 flex flex-wrap justify-center gap-2">
+            {cats.map((c) => (
+              <Link key={c.id} to={shopUrl(c.id)} className="rounded-full px-4 py-1.5 font-body text-sm font-bold text-navy" style={{ background: c.wallColor }}>
+                {catName(c, lang)}
+              </Link>
+            ))}
+          </nav>
         </section>
 
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {PRODUCTS.map((p) => (
-            <li key={p.id}>
-              <article className="flex h-full flex-col overflow-hidden rounded-3xl bg-cream text-navy shadow-xl" aria-labelledby={`card-${p.id}`}>
-                <div className="px-4 pt-3 text-center font-display text-lg text-cream" style={{ background: p.accent }}>
-                  {p.sign[lang]}
-                </div>
-                <img src={p.cover} alt={p.title[lang]} width={600} height={800} loading="lazy" className="aspect-[3/4] w-full object-cover" />
-                <div className="flex flex-1 flex-col p-4">
-                  <h2 id={`card-${p.id}`} className="font-display text-xl leading-tight">
-                    {p.title[lang]}
-                  </h2>
-                  <p className="mt-1 font-body text-sm text-navy/60">
-                    {p.age[lang]} · {p.pages[lang]}
-                  </p>
-                  <p className="mt-2 flex-1 font-body text-sm leading-relaxed text-navy/80">{p.description[lang]}</p>
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <span className="font-display text-2xl">{formatPrice(p.price, lang)}</span>
-                    <button
-                      className="btn-gold px-4 py-2 text-base"
-                      onClick={() => {
-                        addToCart(p.id);
-                        setAdded(p.id);
-                      }}
-                    >
-                      {added === p.id ? t.added : t.addToCart}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </li>
-          ))}
-        </ul>
+        {cats.map((c) => (
+          <section key={c.id} id={`shop-${c.id}`} className="mb-12 scroll-mt-24" aria-labelledby={`h-${c.id}`}>
+            <div className="mb-4 flex items-end justify-between gap-3 border-b-4 pb-2" style={{ borderColor: c.wallColor }}>
+              <div>
+                <h2 id={`h-${c.id}`} className="font-display text-3xl text-cream">
+                  {catName(c, lang)}
+                </h2>
+                <p className="font-body text-sm text-cream/70">{lang === 'ar' ? c.taglineAr : c.taglineEn}</p>
+              </div>
+              <span className="font-body text-sm text-cream/60">{t.productsCount(productsIn(c.id).length)}</span>
+            </div>
+            <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {productsIn(c.id).map((p) => (
+                <li key={p.id}>
+                  <ProductCard p={p} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
 
         <section className="mt-14 rounded-3xl bg-cream p-6 text-navy sm:p-10" aria-labelledby="ws-title">
           <p className="font-body text-teal">🏮 {t.workshopName}</p>

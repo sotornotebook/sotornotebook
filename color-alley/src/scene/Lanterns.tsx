@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FACADE_X, SHOPS, STRINGS, WORKSHOP_Z } from './layout';
-import { glowMats, radialTex, toon } from './materials';
+import { glowMats, toon } from './materials';
 
 // Lantern glass tints (HDR so bloom picks them up)
 const TINTS = ['#FFC15E', '#FF9A6B', '#FFD27A', '#7FE3D6', '#FFB04A'].map((c) => new THREE.Color(c).multiplyScalar(2.6));
@@ -127,10 +127,7 @@ export function Lanterns() {
     metalRef.current.instanceMatrix.needsUpdate = true;
   });
 
-  const poolMat = useMemo(() => {
-    glowMats.pool.map = radialTex;
-    return glowMats.pool;
-  }, []);
+  const poolMat = glowMats.pool;
 
   return (
     <group>

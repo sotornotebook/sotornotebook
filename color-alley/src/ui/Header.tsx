@@ -1,7 +1,9 @@
 import { useStore, useT, cartCount } from '../store/useStore';
-import { productById, PRODUCTS } from '../data/products';
+import { categoryById, CATEGORIES, type Category } from '../data/catalog';
+import type { Lang } from '../data/i18n';
+import { useLocation } from 'react-router-dom';
 import { SHOPS } from '../scene/layout';
-import { goToOffset } from './nav';
+import { exitShop, goToOffset } from './nav';
 import { setAmbient } from './audio';
 
 export function Logo({ className = '' }: { className?: string }) {
@@ -98,7 +100,7 @@ function ProgressBar() {
           className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-navy bg-teal hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-glow"
           style={{ [lang === 'ar' ? 'right' : 'left']: `calc(${s.offset * 100}% - 6px)` }}
           onClick={() => goToOffset(s.offset)}
-          aria-label={productById(s.id)!.sign[lang]}
+          aria-label={catName(categoryById(s.id)!, lang)}
           tabIndex={-1}
         />
       ))}
@@ -106,22 +108,31 @@ function ProgressBar() {
   );
 }
 
+export const catName = (c: Category, lang: Lang) => (lang === 'ar' ? c.nameAr : c.nameEn);
+
 export function Header({ onView2D }: { onView2D: () => void }) {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const nearShop = useStore((s) => s.nearShop);
   const lit = useStore((s) => s.lit);
   const progress = useStore((s) => s.progress);
+  const scene = useStore((s) => s.scene);
+  const sceneCategory = useStore((s) => s.sceneCategory);
+  const location = useLocation();
+  const inside = scene === 'interior' && sceneCategory ? categoryById(sceneCategory) : null;
 
-  const here =
-    nearShop === 'workshop'
+  const nearCat = categoryById(nearShop);
+  const here = inside
+    ? catName(inside, lang)
+    : nearShop === 'workshop'
       ? t.workshopName
-      : nearShop
-        ? productById(nearShop)!.sign[lang]
+      : nearCat
+        ? catName(nearCat, lang)
         : progress < 0.04
           ? t.alleyEntrance
           : t.walking;
-  const idx = PRODUCTS.findIndex((p) => p.id === nearShop);
+  const idx = CATEGORIES.findIndex((c) => c.id === (inside?.id ?? nearShop));
+  const from = (location.state as { from?: string } | null)?.from;
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-30 bg-gradient-to-b from-navy/90 via-navy/50 to-transparent px-3 pb-6 pt-[max(env(safe-area-inset-top),0.75rem)] sm:px-6">
@@ -132,16 +143,25 @@ export function Header({ onView2D }: { onView2D: () => void }) {
         {lit && (
           <div className="hidden min-w-0 flex-1 justify-center md:flex" aria-live="polite">
             <div className="truncate rounded-full border border-gold/40 bg-navy/70 px-4 py-1.5 font-body text-sm backdrop-blur">
-              <span className="text-cream/70">{t.youAreAt} </span>
+              <span className="text-cream/70">{inside ? t.insideAt : t.youAreAt} </span>
               <span className="font-display text-base text-glow">{here}</span>
-              {idx >= 0 && <span className="ms-2 text-xs text-cream/50">({t.shopOf(idx + 1, PRODUCTS.length)})</span>}
+              {idx >= 0 && <span className="ms-2 text-xs text-cream/50">({t.shopOf(idx + 1, CATEGORIES.length)})</span>}
             </div>
           </div>
         )}
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
-          <button className="btn-icon hidden w-auto px-3 font-body text-xs sm:inline-flex" onClick={onView2D}>
-            {t.view2D}
-          </button>
+          {inside ? (
+            <button className="btn-gold px-4 py-2 text-base" onClick={() => exitShop(from)} aria-label={t.exitToAlley}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9" />
+              </svg>
+              <span className="hidden sm:inline">{t.exitToAlley}</span>
+            </button>
+          ) : (
+            <button className="btn-icon hidden w-auto px-3 font-body text-xs sm:inline-flex" onClick={onView2D}>
+              {t.view2D}
+            </button>
+          )}
           <LangButton />
           <SoundButton />
           <CartButton />
@@ -151,11 +171,11 @@ export function Header({ onView2D }: { onView2D: () => void }) {
         <>
           <div className="mt-2 text-center md:hidden" aria-hidden="true">
             <span className="rounded-full bg-navy/70 px-3 py-1 font-body text-xs">
-              <span className="text-cream/70">{t.youAreAt} </span>
+              <span className="text-cream/70">{inside ? t.insideAt : t.youAreAt} </span>
               <span className="font-display text-sm text-glow">{here}</span>
             </span>
           </div>
-          <ProgressBar />
+          {!inside && <ProgressBar />}
         </>
       )}
     </header>

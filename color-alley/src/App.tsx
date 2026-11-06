@@ -3,10 +3,12 @@ import { useStore, useT } from './store/useStore';
 import { Header } from './ui/Header';
 import { Landing } from './ui/Landing';
 import { Controls, A11yNav } from './ui/Controls';
-import { ProductPanel } from './ui/ProductPanel';
 import { Cart } from './ui/Cart';
 import { WorkshopDialog } from './ui/SignupForm';
 import { Fallback2D } from './ui/Fallback2D';
+import { SceneDirector, Transition, useRoute } from './ui/SceneDirector';
+import { ShopDrawer } from './ui/ShopDrawer';
+import { ProductDetail } from './ui/ProductDetail';
 
 // three.js & friends are only downloaded when the 3D alley is actually shown
 const Experience = lazy(() => import('./scene/Experience'));
@@ -44,7 +46,9 @@ export default function App() {
   const lang = useStore((s) => s.lang);
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
-  const webgl = WEBGL;
+  const scene = useStore((s) => s.scene);
+  const sceneCategory = useStore((s) => s.sceneCategory);
+  const { categoryId, productId } = useRoute();
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -58,23 +62,29 @@ export default function App() {
   if (view === '2d') {
     return (
       <>
-        <Fallback2D canUse3D={webgl} onView3D={() => setView('3d')} />
+        <SceneDirector />
+        <Fallback2D canUse3D={WEBGL} onView3D={() => setView('3d')} categoryId={categoryId} />
+        {productId && <ProductDetail productId={productId} />}
         <Cart />
       </>
     );
   }
 
+  const inside = scene === 'interior' && sceneCategory;
   return (
     <>
+      <SceneDirector />
       <A11yNav />
       <Suspense fallback={<Loading />}>
         <Experience />
       </Suspense>
       <Header onView2D={() => setView('2d')} />
-      <Landing />
+      {!inside && <Landing />}
       <Controls />
-      <ProductPanel />
+      {inside && <ShopDrawer categoryId={sceneCategory} />}
+      {productId && <ProductDetail productId={productId} />}
       <WorkshopDialog />
+      <Transition />
       <Cart />
     </>
   );

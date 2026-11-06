@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useStore, useT } from '../store/useStore';
 import { Dialog } from './Dialog';
-import { leaveShop } from './nav';
 import { waLink } from './whatsapp';
 
 const ENDPOINT = import.meta.env.VITE_SIGNUP_ENDPOINT;
@@ -9,7 +8,8 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^\+?[\d\s\-()]{8,16}$/;
 
 /** Email / WhatsApp sign-up for the next book. Posts to VITE_SIGNUP_ENDPOINT, or falls back to WhatsApp. */
-export function SignupForm({ compact = false }: { compact?: boolean }) {
+/** interest: what the visitor wants to hear about (default: the next museum book). */
+export function SignupForm({ compact = false, interest = 'gem-adventure', message }: { compact?: boolean; interest?: string; message?: string }) {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const [name, setName] = useState('');
@@ -21,7 +21,7 @@ export function SignupForm({ compact = false }: { compact?: boolean }) {
     const c = contact.trim();
     if (!EMAIL.test(c) && !PHONE.test(c)) return setState('invalid');
     setState('sending');
-    const payload = { name: name.trim(), contact: c, lang, interest: 'gem-adventure', at: new Date().toISOString() };
+    const payload = { name: name.trim(), contact: c, lang, interest, at: new Date().toISOString() };
     try {
       localStorage.setItem('color-alley-signup', JSON.stringify(payload));
     } catch {
@@ -34,7 +34,7 @@ export function SignupForm({ compact = false }: { compact?: boolean }) {
         /* still thank the visitor; the entry is kept locally */
       }
     } else {
-      window.open(waLink(`${t.orderSignupMsg}\n${payload.name} — ${payload.contact}`), '_blank', 'noopener');
+      window.open(waLink(`${message ?? t.orderSignupMsg}\n${payload.name} — ${payload.contact}`), '_blank', 'noopener');
     }
     setState('done');
   };
@@ -84,6 +84,7 @@ export function SignupForm({ compact = false }: { compact?: boolean }) {
 export function WorkshopDialog() {
   const t = useT();
   const focus = useStore((s) => s.focus);
+  const leaveShop = () => useStore.getState().setFocus(null);
   return (
     <Dialog
       open={focus === 'workshop'}

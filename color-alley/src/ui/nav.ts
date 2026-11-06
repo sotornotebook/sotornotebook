@@ -1,18 +1,24 @@
+import type { NavigateFunction } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { SHOPS, STOPS } from '../scene/layout';
+import { categoryById, coverOf, productById, productsIn } from '../data/catalog';
 
+// The router's navigate(), registered by <SceneDirector>. Lets code inside the
+// R3F canvas (and plain modules) change routes without router hooks.
+let navigateFn: NavigateFunction | null = null;
+export const registerNavigate = (fn: NavigateFunction) => (navigateFn = fn);
+const go: NavigateFunction = ((...args: Parameters<NavigateFunction>) => navigateFn?.(...(args as [never]))) as NavigateFunction;
+
+// ------------------------------------------------------------------ alley walk
 /** Scroll the alley (ScrollControls' scroll container) to an offset in 0..1. */
 export function goToOffset(offset: number, smooth = true) {
   const el = useStore.getState().scrollEl;
   if (!el) return;
-  const top = offset * (el.scrollHeight - el.clientHeight);
-  el.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
+  el.scrollTo({ top: offset * (el.scrollHeight - el.clientHeight), behavior: smooth ? 'smooth' : 'auto' });
 }
 
-// remember where the last button/key press was heading, so quick repeated
-// presses advance stop-by-stop instead of reading the still-moving position
+// quick repeated presses advance stop-by-stop instead of reading the still-moving position
 let last = { target: 0, at: 0 };
-
 export function step(dir: 1 | -1) {
   const live = useStore.getState().progress;
   const p = performance.now() - last.at < 1500 ? last.target : live;
@@ -21,23 +27,50 @@ export function step(dir: 1 | -1) {
   goToOffset(next);
 }
 
-/** Walk to a shop and open its panel. */
+// ------------------------------------------------------------------- routing
+/** Walk into a shop (category). */
 export function visitShop(id: string) {
-  const s = useStore.getState();
-  if (!s.lit) s.lightUp();
-  if (id === 'workshop') goToOffset(1, false);
-  else {
-    const shop = SHOPS.find((x) => x.id === id);
-    if (shop) goToOffset(shop.offset, false);
+  if (id === 'workshop') {
+    const s = useStore.getState();
+    if (!s.lit) s.lightUp();
+    goToOffset(1, false);
+    s.setFocus('workshop');
+    return;
   }
-  s.setFocus(id);
+  const shop = SHOPS.find((x) => x.id === id);
+  if (shop && useStore.getState().scene === 'alley') goToOffset(shop.offset, false);
+  go(`/shop/${id}`, { state: { from: 'alley' } });
 }
 
-/** Close the panel and return to the path in front of the shop. */
-export function leaveShop() {
-  const { focus, setFocus } = useStore.getState();
-  const shop = SHOPS.find((x) => x.id === focus);
-  setFocus(null);
-  if (shop) goToOffset(shop.offset, false);
-  else if (focus === 'workshop') goToOffset(1, false);
+/** Leave the shop interior back to the alley (back-button friendly). */
+export function exitShop(from?: string) {
+  if (from === 'alley') go(-1);
+  else go('/');
+}
+
+export function openProduct(id: string, opts: { replace?: boolean } = {}) {
+  go(`/product/${id}`, { state: { from: 'shop' }, replace: opts.replace });
+}
+
+export function closeProduct(productId: string, from?: string) {
+  const p = productById(productId);
+  if (from === 'shop') go(-1);
+  else go(p ? `/shop/${p.categoryId}` : '/', { state: { from: 'alley' } });
+}
+
+export const shopUrl = (id: string) => `/shop/${id}`;
+export const productUrl = (id: string) => `/product/${id}`;
+
+// ---------------------------------------------------------------- preloading
+const preloaded = new Set<string>();
+/** Warm up the interior chunk and the category's cover images (hover > 300ms). */
+export function preloadShop(categoryId: string) {
+  if (preloaded.has(categoryId) || !categoryById(categoryId)) return;
+  preloaded.add(categoryId);
+  void import('../scene/interior/Interior');
+  for (const p of productsIn(categoryId)) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = coverOf(p);
+  }
 }

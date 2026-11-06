@@ -7,10 +7,13 @@ import '@fontsource/tajawal/arabic-700.css';
 import '@fontsource/tajawal/latin-400.css';
 import '@fontsource/tajawal/latin-700.css';
 import './index.css';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>,
 );

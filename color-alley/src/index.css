@@ -30,3 +30,10 @@ body.alley-3d { overflow: hidden; overscroll-behavior: none; }
 @keyframes lantern-pulse { 0%,100% { box-shadow: 0 0 18px rgba(242,169,59,.5); } 50% { box-shadow: 0 0 42px rgba(255,227,163,.95); } }
 .animate-lantern { animation: lantern-pulse 2.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .animate-lantern { animation: none; } }
+
+/* page-flip leaf: hinged on its right edge (Arabic binding) or its left edge */
+@keyframes flipFromLeft { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+@keyframes flipFromRight { from { transform: rotateY(0deg); } to { transform: rotateY(-180deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lantern-swing { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }

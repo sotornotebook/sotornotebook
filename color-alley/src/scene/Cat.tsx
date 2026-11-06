@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { htmlPortal } from './htmlPortal';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -97,7 +98,7 @@ export function Cat() {
           </mesh>
         </group>
         {hover && (
-          <Html position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[20, 0]}>
+          <Html portal={htmlPortal} position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[20, 0]}>
             <div className="pointer-events-none whitespace-nowrap rounded-full bg-cream/90 px-3 py-1 font-body text-sm text-navy shadow">{t.catName}</div>
           </Html>
         )}

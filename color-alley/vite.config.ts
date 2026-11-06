@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { PRODUCTS } from './src/data/products';
+import { CATEGORIES, PRODUCTS, coverOf, productsIn } from './src/data/catalog';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -12,25 +12,30 @@ function seo(site: string): Plugin {
   return {
     name: 'color-alley-seo',
     transformIndexHtml(html) {
-      const items = PRODUCTS.map(
-        (p) => `
-        <li>
-          <article lang="ar">
-            <img src="${p.cover}" alt="${esc(p.title.ar)}" width="300" height="400" loading="lazy" />
-            <h2>${esc(p.title.ar)}</h2>
-            <p>${esc(p.sign.ar)} — ${esc(p.age.ar)} — ${esc(p.pages.ar)}</p>
-            <p>${esc(p.description.ar)}</p>
-            <p><strong>${p.price} ج.م</strong></p>
-            <p lang="en">${esc(p.title.en)} — ${esc(p.age.en)} — ${p.price} EGP</p>
-          </article>
-        </li>`,
-      ).join('');
+      const section = (c: (typeof CATEGORIES)[number]) => `
+        <section>
+          <h2><a href="/shop/${c.id}">${esc(c.nameAr)}</a> — ${esc(c.nameEn)}</h2>
+          <p>${esc(c.taglineAr)}</p>
+          <ul>${productsIn(c.id)
+            .map(
+              (p) => `
+            <li><article lang="ar">
+              <a href="/product/${p.id}"><img src="${coverOf(p)}" alt="${esc(p.titleAr)}" width="150" height="200" loading="lazy" />
+              <h3>${esc(p.titleAr)}</h3></a>
+              <p lang="en">${esc(p.titleEn)}</p>
+              <p>${p.ageMax >= 99 ? `+${p.ageMin}` : `${p.ageMin}–${p.ageMax}`} سنة${p.pages ? ` — ${p.pages} صفحة` : ''}</p>
+              <p>${esc(p.descriptionAr)}</p>
+              <p><strong>${p.quoteOnly ? 'اطلب عرض سعر' : `${p.price} ج.م`}</strong>${p.inStock ? '' : ' — قريبًا'}</p>
+            </article></li>`,
+            )
+            .join('')}
+          </ul>
+        </section>`;
       const list = `
       <main id="seo-content" style="max-width:960px;margin:0 auto;padding:24px;font-family:Tajawal,system-ui,sans-serif;color:#FFF8EC">
         <h1>حارة الألوان — كتب تلوين بحكاية مصرية</h1>
-        <p>ضِلّام سرق ألوان الحارة! نوّر الفوانيس وامشي في حارة الألوان واختار كتاب الحكاية اللي يناسبك.</p>
-        <ul style="list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">${items}
-        </ul>
+        <p>ضِلّام سرق ألوان الحارة! نوّر الفوانيس وامشي في حارة الألوان، ادخل الدكاكين واختار كتاب الحكاية اللي يناسبك.</p>
+        ${[...CATEGORIES].sort((a, b) => a.order - b.order).map(section).join('')}
         <section><h2>ورشة جدو عبده</h2><p>الحكاية الجاية: مغامرة في المتحف المصري الكبير.</p></section>
       </main>`;
       const ld = {
@@ -42,13 +47,17 @@ function seo(site: string): Plugin {
           position: i + 1,
           item: {
             '@type': 'Product',
-            name: p.title.ar,
-            alternateName: p.title.en,
-            description: p.description.ar,
-            image: `${site}${p.cover}`,
+            name: p.titleAr,
+            alternateName: p.titleEn,
+            description: p.descriptionAr,
+            url: `${site}/product/${p.id}`,
+            image: p.images.map((i) => `${site}${i.src}`),
+            category: CATEGORIES.find((c) => c.id === p.categoryId)?.nameAr,
             brand: { '@type': 'Brand', name: 'حارة الألوان' },
-            audience: { '@type': 'PeopleAudience', suggestedMinAge: p.age.en },
-            offers: { '@type': 'Offer', price: p.price, priceCurrency: 'EGP', availability: 'https://schema.org/InStock' },
+            audience: { '@type': 'PeopleAudience', suggestedMinAge: p.ageMin, ...(p.ageMax < 99 ? { suggestedMaxAge: p.ageMax } : {}) },
+            ...(p.quoteOnly
+              ? {}
+              : { offers: { '@type': 'Offer', price: p.price, priceCurrency: 'EGP', availability: p.inStock ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder', url: `${site}/product/${p.id}` } }),
           },
         })),
       };

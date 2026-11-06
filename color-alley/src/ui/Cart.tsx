@@ -1,8 +1,8 @@
-import { productById } from '../data/products';
+import { coverOf, productById } from '../data/catalog';
 import { cartTotal, useStore, useT } from '../store/useStore';
 import { Dialog } from './Dialog';
 import { formatNumber, formatPrice } from './format';
-import { orderLink } from './whatsapp';
+import { orderLink, titleOf } from './whatsapp';
 
 /** Cart drawer. Checkout opens WhatsApp with the order pre-filled. */
 export function Cart() {
@@ -38,12 +38,12 @@ export function Cart() {
                 const p = productById(l.id)!;
                 return (
                   <li key={l.id} className="flex gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-navy/5">
-                    <img src={p.cover} alt="" width={60} height={80} className="h-20 w-[60px] rounded-md object-cover" />
+                    <img src={coverOf(p)} alt="" width={60} height={80} className="h-20 w-[60px] rounded-md object-cover" />
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-lg leading-tight">{p.title[lang]}</div>
-                      <div className="font-body text-xs text-navy/60">{p.age[lang]}</div>
+                      <div className="font-display text-lg leading-tight">{titleOf(p, lang)}</div>
+                      <div className="font-body text-xs text-navy/60">{t.ageRange(p.ageMin, p.ageMax)}</div>
                       <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center gap-1" role="group" aria-label={p.title[lang]}>
+                        <div className="flex items-center gap-1" role="group" aria-label={titleOf(p, lang)}>
                           <button className="h-8 w-8 rounded-full bg-navy/10 font-bold hover:bg-navy/20" onClick={() => setQty(l.id, l.qty - 1)} aria-label={t.decrease}>
                             −
                           </button>
