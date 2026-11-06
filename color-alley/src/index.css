@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Tajawal', system-ui, sans-serif;
+  background: #1E2A5A;
+  color: #FFF8EC;
+  -webkit-tap-highlight-color: transparent;
+}
+body.alley-3d { overflow: hidden; overscroll-behavior: none; }
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-display text-lg leading-none transition
+      focus:outline-none focus-visible:ring-4 focus-visible:ring-glow/70 disabled:opacity-50;
+  }
+  .btn-gold { @apply btn bg-gold text-navy shadow-lantern hover:bg-glow active:scale-95; }
+  .btn-ghost { @apply btn border border-cream/30 bg-navy/60 text-cream backdrop-blur hover:bg-navy/80; }
+  .btn-icon {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full border border-cream/25 bg-navy/70 text-cream backdrop-blur transition
+      hover:bg-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-glow/70;
+  }
+  .panel { @apply bg-cream text-navy shadow-2xl; }
+}
+
+/* gentle pulse for the "light up" button */
+@keyframes lantern-pulse { 0%,100% { box-shadow: 0 0 18px rgba(242,169,59,.5); } 50% { box-shadow: 0 0 42px rgba(255,227,163,.95); } }
+.animate-lantern { animation: lantern-pulse 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .animate-lantern { animation: none; } }
